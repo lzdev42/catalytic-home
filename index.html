@@ -1,68 +1,771 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catalytic Home</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d1117;
-      color: #e6edf3;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+  <title>Catalytic — 高可靠自动化数据采集架构</title>
+  <!-- 使用 Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <!-- 使用国内镜像加载 Google Fonts 备用 -->
+  <link rel="stylesheet"
+    href="https://fonts.font.im/css?family=IBM+Plex+Mono:400,500|IBM+Plex+Sans:400,600&display=swap">
+  <!-- 使用 jsdelivr CDN 加载 Lucide 图标库 -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: [
+              'system-ui',
+              '-apple-system',
+              'BlinkMacSystemFont',
+              '"PingFang SC"',
+              '"Microsoft YaHei"',
+              '"Segoe UI"',
+              'Roboto',
+              'sans-serif'
+            ],
+            mono: [
+              'ui-monospace',
+              'SFMono-Regular',
+              'Menlo',
+              'Monaco',
+              'Consolas',
+              'monospace'
+            ],
+          },
+          colors: {
+            bg: '#0A0C10',
+            surface: '#111318',
+            border: '#1E2128',
+            muted: '#3A3F4B',
+            dim: '#6B7280',
+            body: '#C4C9D4',
+            head: '#E8EAF0',
+            accent: '#4F8EF7',
+            'accent-dim': '#1E3A6E',
+          },
+          typography: (theme) => ({
+            invert: {
+              css: {
+                '--tw-prose-body': theme('colors.body'),
+                '--tw-prose-headings': theme('colors.head'),
+                '--tw-prose-links': theme('colors.accent'),
+                '--tw-prose-hr': theme('colors.border'),
+                'h2': {
+                  marginTop: '2.5em',
+                  paddingBottom: '0.5em',
+                  borderBottom: `1px solid ${theme('colors.border')}`,
+                  fontWeight: '600',
+                  letterSpacing: '-0.01em',
+                },
+              }
+            }
+          })
+        }
+      }
     }
-    .container {
-      text-align: center;
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #0A0C10;
+      color: #C4C9D4;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .glass {
+      background: rgba(17, 19, 24, 0.8);
+      backdrop-filter: blur(16px);
+      border: 1px solid #1E2128;
+    }
+
+    nav {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 50;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid #1E2128;
+      height: 56px;
+    }
+
+    .nav-btn {
+      color: #6B7280;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0 0 2px 0;
+      border-bottom: 1px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover {
+      color: #E8EAF0;
+    }
+
+    .nav-btn.active {
+      color: #E8EAF0;
+      border-bottom-color: #4F8EF7;
+    }
+
+    .view {
+      transition: opacity 0.2s ease;
+    }
+
+    .view.hidden {
+      display: none;
+    }
+
+    .glow {
+      box-shadow: 0 0 24px rgba(79, 142, 247, 0.15);
+    }
+
+    .tag {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .tag-bright {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .diagram-box {
+      background: #0D1017;
+      border: 1px solid #1E2128;
+      border-radius: 1.25rem;
       padding: 2rem;
     }
-    h1 {
-      font-size: 3rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #58a6ff, #79c0ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 1rem;
+
+    .feat-card {
+      background: #111318;
+      border: 1px solid #1E2128;
+      border-radius: 1rem;
+      padding: 2rem;
+      transition: border-color 0.2s;
     }
-    p {
-      font-size: 1.2rem;
-      color: #8b949e;
-      margin-bottom: 2rem;
-      max-width: 500px;
+
+    .feat-card:hover {
+      border-color: #2A3040;
     }
-    .badge {
-      display: inline-block;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 9999px;
-      padding: 0.4rem 1rem;
-      font-size: 0.875rem;
-      color: #58a6ff;
+
+    html {
+      scroll-behavior: smooth;
     }
-    a {
-      color: #58a6ff;
-      text-decoration: none;
+
+    h1,
+    h2,
+    h3 {
+      letter-spacing: -0.015em;
     }
-    a:hover { text-decoration: underline; }
-    footer {
-      margin-top: 4rem;
-      color: #484f58;
-      font-size: 0.8rem;
+
+    .cursor-zoom-in {
+      cursor: zoom-in;
+    }
+
+    #image-modal-img {
+      max-height: 90vh;
+      max-width: 90vw;
+      object-contain: contain;
+      will-change: transform;
+    }
+
+    #image-modal {
+      transition: visibility 0.4s, opacity 0.4s ease;
+    }
+
+    #image-modal-content {
+      will-change: transform, opacity;
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>Catalytic Home</h1>
-    <p>Documentation & CI/CD hub for the Catalytic project.</p>
-    <span class="badge">lzdev42 / catalytic-home</span>
-    <footer>
-      <p>Powered by <a href="https://pages.github.com">GitHub Pages</a></p>
-    </footer>
+
+<body class="antialiased selection:bg-accent selection:text-white">
+  <nav>
+    <div class="max-w-5xl mx-auto px-6 h-full flex items-center justify-between relative z-10">
+      <button onclick="switchView('home')" class="flex items-center gap-2 group">
+        <div class="w-6 h-6 bg-accent rounded flex items-center justify-center">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-white"></i>
+        </div>
+        <span class="font-semibold text-head text-sm tracking-wider">Catalytic</span>
+      </button>
+      <div id="main-nav" class="hidden md:flex items-center gap-8">
+        <button onclick="switchView('home')" id="nav-home" class="nav-btn active">产品</button>
+        <button onclick="switchView('spec')" id="nav-spec" class="nav-btn">架构介绍</button>
+        <a href="https://github.com/lzdev42/CatalyticKit/releases" target="_blank"
+          class="nav-btn flex items-center gap-1.5 hover:text-head">
+          <i data-lucide="download" class="w-3.5 h-3.5"></i>下载
+        </a>
+        <button onclick="openContact()"
+          class="flex items-center gap-1.5 text-[0.8rem] font-medium px-5 py-2 rounded bg-accent-dim text-accent hover:bg-accent hover:text-white transition-all tag">
+          联系
+        </button>
+      </div>
+      <div class="flex items-center gap-3 md:hidden">
+        <!-- spec 页返回按钮（仅 spec 页显示） -->
+        <button id="spec-back" class="hidden items-center gap-2 text-dim hover:text-head transition-colors text-sm"
+          onclick="switchView('home')">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>返回
+        </button>
+        <!-- 汉堡按钮（仅主页显示） -->
+        <button id="menu-btn" onclick="toggleMenu()"
+          class="flex items-center justify-center w-8 h-8 text-dim hover:text-head transition-colors">
+          <i data-lucide="menu" class="w-5 h-5" id="menu-icon-open"></i>
+          <i data-lucide="x" class="w-5 h-5 hidden" id="menu-icon-close"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="mobile-menu" class="hidden fixed top-14 left-0 right-0 z-40 border-b border-border"
+    style="background: rgba(10,12,16,0.97); backdrop-filter: blur(16px);">
+    <div class="flex flex-col px-6 py-4 gap-4">
+      <button onclick="switchView('home'); toggleMenu()"
+        class="text-left text-body hover:text-head text-sm py-1">产品</button>
+      <button onclick="switchView('spec'); toggleMenu()"
+        class="text-left text-body hover:text-head text-sm py-1">架构介绍</button>
+      <a href="https://github.com/lzdev42/CatalyticKit/releases" target="_blank"
+        class="text-body hover:text-head text-sm py-1">下载</a>
+      <button onclick="openContact(); toggleMenu()"
+        class="text-left text-sm font-medium px-5 py-2 rounded bg-accent-dim text-accent hover:bg-accent hover:text-white transition-all tag w-fit">
+        联系
+      </button>
+    </div>
   </div>
+
+  <div id="home-view" class="view pt-14">
+    <section class="relative pt-28 pb-24 overflow-hidden">
+      <!-- 移除原有的固定中心光晕，改为跟随截图的光晕 -->
+      <div class="max-w-5xl mx-auto px-6 relative z-10">
+        <div class="tag text-body/60 mb-6">Industrial T&amp;M Framework</div>
+        <h1 class="text-4xl md:text-5xl font-semibold text-head leading-[1.3] tracking-tight max-w-4xl">
+          高可靠自动化测试<br />
+          数据采集调度架构
+        </h1>
+        <p class="mt-8 text-body text-lg leading-relaxed max-w-2xl font-light">
+          连接仪器、执行流程、判定结果。Catalytic
+          将测试系统的核心逻辑标准化，让搭建过程从繁琐的底层代码堆砌，转向更直观的任务逻辑配置。
+        </p>
+        <div class="mt-10 flex flex-wrap gap-3">
+          <a href="https://github.com/lzdev42/CatalyticKit/releases" target="_blank"
+            class="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-blue-400 transition-colors glow">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            下载 SDK &amp; 插件
+          </a>
+          <button onclick="switchView('spec')"
+            class="flex items-center gap-2 px-6 py-2.5 rounded-lg glass text-body text-sm font-medium hover:text-head transition-colors">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            架构介绍
+          </button>
+        </div>
+        <div class="mt-14 flex flex-wrap items-center gap-3">
+          <span class="tag-bright text-body font-medium mr-1">支持平台</span>
+          <span class="tag-bright px-3 py-1.5 rounded bg-surface border border-border text-body/90">Windows
+            (x86/ARM64)</span>
+          <span class="tag-bright px-3 py-1.5 rounded bg-surface border border-border text-body/90">macOS
+            (Intel/M-Series)</span>
+          <span class="tag-bright px-3 py-1.5 rounded bg-surface border border-border text-body/90">Linux
+            (x86/ARM64)</span>
+          <span class="tag-bright px-3 py-1.5 rounded bg-surface border border-border text-body/90">iOS/Android (Tablet
+            UI)</span>
+        </div>
+
+        <!-- 截图展示位：这里替换为真实的软件截图 -->
+        <div class="mt-20 relative mx-auto w-full max-w-4xl">
+          <!-- 背景光晕效果 -->
+          <div
+            class="absolute -inset-1 bg-gradient-to-r from-accent/40 to-[#8A2BE2]/40 rounded-2xl blur-2xl opacity-60 pointer-events-none">
+          </div>
+
+          <!-- 伪装应用窗口 (带轮播功能) -->
+          <div
+            class="relative rounded-xl bg-surface border border-border shadow-2xl overflow-hidden aspect-[16/10] flex flex-col group"
+            id="carousel-container">
+            <!-- 仿 macOS 窗口顶部栏 -->
+            <div class="h-10 bg-bg/80 border-b border-border flex items-center px-4 gap-2 z-20 relative shadow-sm">
+              <div class="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E]"></div>
+              <div class="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123]"></div>
+              <div class="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
+            </div>
+
+            <!-- 轮播主体区 -->
+            <div class="flex-1 relative overflow-hidden bg-bg">
+              <!-- 图片轨道 -->
+              <div id="carousel-track" class="flex w-full h-full transition-transform duration-500 ease-out">
+                <!-- 第 1 张图 (运行主界面) -->
+                <div class="w-full h-full flex-shrink-0 relative">
+                  <img src="assets/dash-main.jpg" alt="运行主界面"
+                    class="w-full h-full object-cover absolute inset-0 cursor-zoom-in"
+                    onclick="openImageModal(this.src)">
+                </div>
+                <!-- 第 2 张图 (设备管理) -->
+                <div class="w-full h-full flex-shrink-0 relative">
+                  <img src="assets/dash-config.jpg" alt="设备管理"
+                    class="w-full h-full object-cover absolute inset-0 cursor-zoom-in"
+                    onclick="openImageModal(this.src)">
+                </div>
+                <!-- 第 3 张图 (流程逻辑) -->
+                <div class="w-full h-full flex-shrink-0 relative">
+                  <img src="assets/dash-logic.jpg" alt="流程逻辑"
+                    class="w-full h-full object-cover absolute inset-0 cursor-zoom-in"
+                    onclick="openImageModal(this.src)">
+                </div>
+              </div>
+
+              <!-- 左右切换按钮 -->
+              <button onclick="prevSlide()"
+                class="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-black/80">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+              </button>
+              <button onclick="nextSlide()"
+                class="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10 hover:bg-black/80">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              </button>
+
+              <!-- 底部圆点指示器 -->
+              <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10" id="carousel-dots">
+                <button onclick="goToSlide(0)" class="w-2 h-2 rounded-full bg-white/80 transition-all"></button>
+                <button onclick="goToSlide(1)"
+                  class="w-2 h-2 rounded-full bg-white/30 hover:bg-white/50 transition-all"></button>
+                <button onclick="goToSlide(2)"
+                  class="w-2 h-2 rounded-full bg-white/30 hover:bg-white/50 transition-all"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16 border-t border-border">
+      <div class="max-w-5xl mx-auto px-6">
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="feat-card">
+            <div class="w-8 h-8 bg-accent-dim rounded flex items-center justify-center mb-5">
+              <i data-lucide="app-window" class="w-4 h-4 text-accent"></i>
+            </div>
+            <h3 class="text-head font-semibold mb-3">软件界面直接配置</h3>
+            <p class="text-dim text-sm leading-relaxed">无需编写代码。通过直观的操作界面，参考说明书即可快速完成常规测试流程的定义与判定。</p>
+          </div>
+          <div class="feat-card">
+            <div class="w-8 h-8 bg-accent-dim rounded flex items-center justify-center mb-5">
+              <i data-lucide="cable" class="w-4 h-4 text-accent"></i>
+            </div>
+            <h3 class="text-head font-semibold mb-3">标准接口 灵活驱动</h3>
+            <p class="text-dim text-sm leading-relaxed">采用接口驱动设计。无论物理层是 Socket、CAN、ModBus、VISA
+              还是串口，只要插件遵守规范即可接入。对于界面无法覆盖的复杂算法或业务逻辑，支持通过开发插件实现无限扩展。</p>
+          </div>
+          <div class="feat-card">
+            <div class="w-8 h-8 bg-accent-dim rounded flex items-center justify-center mb-5">
+              <i data-lucide="file-json" class="w-4 h-4 text-accent"></i>
+            </div>
+            <h3 class="text-head font-semibold mb-3">流程配置导入导出</h3>
+            <p class="text-dim text-sm leading-relaxed">测试逻辑与参数均保存在单个 JSON
+              文件中。配置与机台物理地址彻底解耦，方便在不同工位或不同机台间快速迁移与复用。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-12 border-t border-border">
+      <div class="max-w-5xl mx-auto px-6">
+        <div class="tag text-body/60 mb-6 uppercase">技术规格</div>
+        <div class="grid md:grid-cols-3 gap-px bg-border rounded-xl overflow-hidden">
+          <div class="bg-surface p-6">
+            <div class="tag text-accent mb-2">Engine</div>
+            <div class="text-head font-semibold mb-1">Rust 内核</div>
+            <div class="text-dim text-xs leading-relaxed">核心调度心脏。负责流程解析与判定，不带任何 IO负载，保障长时间运行的绝对稳定。</div>
+          </div>
+          <div class="bg-surface p-6">
+            <div class="tag text-accent mb-2">Service</div>
+            <div class="text-head font-semibold mb-1">.NET Service</div>
+            <div class="text-dim text-xs leading-relaxed">管理中枢。作为连接内核、UI 与插件的宿主环境，利用成熟生态接入主流硬件。</div>
+          </div>
+          <div class="bg-surface p-6">
+            <div class="tag text-accent mb-2">UI</div>
+            <div class="text-head font-semibold mb-1">Kotlin Compose</div>
+            <div class="text-dim text-xs leading-relaxed">跨平台终端。支持工控机原生操作，亦可通过平板电脑实现远程监控。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- SPEC VIEW -->
+  <div id="spec-view" class="view hidden pt-14">
+    <main class="pt-16 pb-24 px-6">
+      <article class="prose prose-invert prose-lg max-w-3xl mx-auto"
+        style="--tw-prose-body:#C4C9D4; --tw-prose-headings:#E8EAF0;">
+        <header class="mb-16 border-b border-border pb-10">
+          <div class="tag text-accent mb-4">Architecture Introduction</div>
+          <h1 class="text-3xl md:text-4xl font-bold leading-tight text-head">Catalytic 架构介绍</h1>
+          <!-- 优化：更新日期挪到标题下方 -->
+          <div class="text-dim text-sm mt-4 font-mono">更新日期：2026年3月30日</div>
+        </header>
+        <p class="lead">
+          工业质检软件不应该是重复劳动的产物。Catalytic
+          通过将业务逻辑与硬件通讯分离，确保了系统架构的稳固——无论仪器如何更换，核心业务流程都能平滑迁移。
+        </p>
+
+        <h2>1. 职责分明的系统分层</h2>
+        <div class="my-12 not-prose diagram-box">
+          <div class="flex flex-col items-center gap-12 w-full">
+            <!-- UI Layer -->
+            <div class="w-full max-w-xs bg-surface border border-border rounded-xl p-5 text-center relative">
+              <div class="flex items-center justify-center gap-2 text-head mb-1.5 font-semibold text-sm">
+                <i data-lucide="layout-template" class="w-4 h-4 text-accent"></i>操作界面 (UI)
+              </div>
+              <p class="text-[10px] text-accent font-mono mb-3 opacity-70">支持 PC / 平板电脑操作</p>
+              <div class="flex justify-center gap-2 text-[10px] text-dim">
+                <span class="bg-bg px-2 py-1 rounded border border-border">参数设定</span>
+                <span class="bg-bg px-2 py-1 rounded border border-border">状态反馈</span>
+              </div>
+              <div class="absolute -bottom-[52px] left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
+                <div class="w-px h-12 bg-border"></div>
+                <div
+                  class="absolute top-[18px] bg-bg px-3 py-1 text-[9px] text-dim font-mono border border-border rounded-full">
+                  gRPC / Protobuf</div>
+                <i data-lucide="chevron-down" class="absolute -bottom-2 w-3.5 h-3.5 text-muted bg-bg"></i>
+              </div>
+            </div>
+
+            <!-- Service + Engine Layer -->
+            <div class="w-full grid md:grid-cols-2 gap-12 md:gap-20 relative mt-2">
+              <div class="bg-surface border border-border rounded-xl p-5 text-center relative max-w-xs mx-auto w-full">
+                <div class="flex items-center justify-center gap-2 text-head mb-1.5 font-semibold text-sm">
+                  <i data-lucide="server" class="w-4 h-4 text-accent"></i>管理中枢 (Service)
+                </div>
+                <p class="text-[10px] text-accent font-mono mb-3 opacity-70">中枢路由与插件宿主</p>
+                <div class="flex justify-center gap-2 text-[10px] text-dim">
+                  <span class="bg-bg px-2 py-1 rounded border border-border">.NET 环境</span>
+                  <span class="bg-bg px-2 py-1 rounded border border-border">逻辑派发</span>
+                </div>
+                <div class="absolute -bottom-[52px] left-1/2 -translate-x-1/2 flex flex-col items-center z-10">
+                  <div class="w-px h-12 bg-border"></div>
+                  <i data-lucide="chevron-down" class="absolute -bottom-2 w-3.5 h-3.5 text-muted bg-bg"></i>
+                </div>
+              </div>
+              <div
+                class="hidden md:flex absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 items-center justify-center z-20">
+                <div
+                  class="bg-bg px-3 py-1 text-[9px] text-accent font-mono border border-accent-dim rounded-full whitespace-nowrap">
+                  FFI C ABI</div>
+                <div class="absolute w-20 h-px bg-accent-dim -z-10"></div>
+              </div>
+              <div class="bg-bg border border-accent-dim rounded-xl p-5 text-center max-w-xs mx-auto w-full"
+                style="box-shadow:0 0 20px rgba(79,142,247,0.08)">
+                <div class="flex items-center justify-center gap-2 text-head mb-1.5 font-semibold text-sm">
+                  <i data-lucide="cpu" class="w-4 h-4 text-accent"></i>调度内核 (Engine)
+                </div>
+                <p class="text-[10px] text-accent font-mono mb-3 opacity-70">Rust 执行引擎</p>
+                <div class="grid grid-cols-2 gap-1.5 text-[9px] text-dim">
+                  <span class="bg-surface border border-border p-1.5 rounded">流程调度</span>
+                  <span class="bg-surface border border-border p-1.5 rounded">并发管理</span>
+                  <span class="bg-surface border border-border p-1.5 rounded">判定规则</span>
+                  <span class="bg-surface border border-border p-1.5 rounded">数据持久化</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Plugin Ecosystem -->
+            <div class="w-full max-w-xs mt-2">
+              <div class="border border-dashed border-muted rounded-xl p-5 bg-surface/40">
+                <div class="text-center tag text-muted mb-4">Plugin Ecosystem</div>
+                <div class="flex justify-center gap-3">
+                  <div class="bg-bg border border-border rounded-lg px-4 py-3 text-center flex-1">
+                    <span class="block text-xs font-semibold text-head mb-1">通讯插件</span>
+                    <span class="block text-[9px] text-dim font-mono">TCP / VISA / COM</span>
+                  </div>
+                  <div class="bg-bg border border-border rounded-lg px-4 py-3 text-center flex-1">
+                    <span class="block text-xs font-semibold text-head mb-1">处理器插件</span>
+                    <span class="block text-[9px] text-dim font-mono">Report / MES</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2>2. 接口驱动：灵活接入各类硬件</h2>
+        <p>中枢层（Service）屏蔽了硬件协议的碎片化。基于接口驱动的设计理念，系统只需关心插件是否符合规范。只要通讯插件遵守 interface
+          定义，Socket、CAN、ModBus、VISA、串口通讯等均可作为物理层透明接入。</p>
+        <p>对于界面配置无法涵盖的复杂流程或定制业务逻辑，开发者可以通过编写独立的 Processor（处理器插件）接管特定步骤。这种设计允许系统在不改动任何核心逻辑的情况下，应对任何复杂的工业业务需求。</p>
+
+        <h2>3. 双轨执行模式</h2>
+        <div class="my-10 not-prose diagram-box">
+          <div class="flex flex-col items-center w-full gap-6">
+            <div class="bg-surface border border-border rounded-lg px-8 py-3 text-head text-sm font-semibold">Step
+              Execution Dispatcher</div>
+            <div class="grid grid-cols-2 gap-6 md:gap-12 w-full">
+              <div class="text-center">
+                <span
+                  class="tag px-2.5 py-1 rounded text-accent bg-accent-dim border border-accent-dim font-semibold">Engine
+                  Controlled</span>
+                <div class="mt-4 space-y-2">
+                  <div class="bg-surface p-2.5 rounded-lg text-[11px] text-dim border border-border">内核直接下发指令</div>
+                  <div class="bg-surface p-2.5 rounded-lg text-[11px] text-dim border border-border">高频数据快速判定</div>
+                </div>
+              </div>
+              <div class="text-center">
+                <span class="tag px-2.5 py-1 rounded text-dim bg-surface border border-border font-semibold">Service
+                  Controlled</span>
+                <div class="mt-4 space-y-2">
+                  <div class="bg-surface p-2.5 rounded-lg text-[11px] text-dim border border-border">控制权移交 Service</div>
+                  <div class="bg-surface p-2.5 rounded-lg text-[11px] text-dim border border-border">异步等待复杂业务结果</div>
+                </div>
+              </div>
+            </div>
+            <i data-lucide="chevron-down" class="text-accent w-6 h-6"></i>
+            <div class="bg-accent-dim border border-accent-dim rounded-lg px-8 py-3 text-accent text-sm font-semibold">
+              Rule Engine 判定结果</div>
+          </div>
+        </div>
+
+        <ul>
+          <li><strong>内核控制模式 (Engine Controlled)</strong>：由 Rust
+            内核直接接管，针对标准仪器的指令下发与快速响应判定，确保极致的采集效率。</li>
+          <li><strong>Service 控制模式 (Service Controlled)</strong>：针对数据库交互、复杂算法计算、报表生成等重型业务逻辑，内核将控制权交给 Service
+            层插件处理，处理完成后回传结果。</li>
+        </ul>
+
+        <h2>4. AI 辅助部署能力</h2>
+        <p>系统架构设计之初便具备 AI
+          融合基因。目前已支持通过大模型自动生成业务配置并快速导入。同时，在架构层面预留了智能化演进接口，未来有望实现让 AI
+          阅读硬件手册后自动生成通讯插件并运行，从而极大降低现场部署的技术门槛。
+        </p>
+
+        <h2>5. 跨平台终端与远程交互</h2>
+        <p>操作界面（UI）与中枢层（Service）之间采用高性能的 gRPC 协议通讯。得益于该协议的跨平台特性，UI 可以在 Windows、macOS、Linux
+          以及平板电脑（iOS/Android）上原生运行。Service 在工控机端稳定运行，而平板端作为轻量终端实现远程监控与操作。</p>
+      </article>
+    </main>
+  </div>
+
+  <!-- CONTACT MODAL -->
+  <div id="contact-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/75 backdrop-blur-sm" onclick="closeContact()"></div>
+    <div
+      class="relative glass p-10 rounded-2xl max-sm:px-6 max-w-sm w-full text-center scale-95 opacity-0 transition-all duration-250"
+      id="modal-content">
+      <button onclick="closeContact()" class="absolute top-4 right-4 text-muted hover:text-head transition-colors">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+      <div class="tag text-body/60 mb-6">联系我们</div>
+      <div class="bg-white p-4 rounded-xl inline-block shadow-2xl">
+        <img src="https://i.emuci.xyz/images/wechat_qr.jpeg" alt="技术微信二维码"
+          class="w-64 h-64 object-cover rounded-lg block">
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE PREVIEW MODAL (Apple Smooth Native) -->
+  <div id="image-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 invisible opacity-0 pointer-events-none">
+    <div class="absolute inset-0 bg-black/95" onclick="closeImageModal()"></div>
+    <div class="relative scale-95 opacity-0" id="image-modal-content">
+      <button onclick="closeImageModal()"
+        class="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors flex items-center gap-2 tag text-xs">
+        <i data-lucide="x" class="w-5 h-5"></i>关闭 [ESC]
+      </button>
+      <img src="" id="image-modal-img" class="rounded-lg shadow-2xl border border-white/10" alt="预览图">
+    </div>
+  </div>
+
+  <footer class="py-8 text-center border-t border-border">
+    <p class="text-muted text-xs font-mono">© 2026 Catalytic Framework</p>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+    function toggleMenu() {
+      const menu = document.getElementById('mobile-menu');
+      const iconOpen = document.getElementById('menu-icon-open');
+      const iconClose = document.getElementById('menu-icon-close');
+      const isHidden = menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !isHidden);
+      iconOpen.classList.toggle('hidden', isHidden);
+      iconClose.classList.toggle('hidden', !isHidden);
+    }
+
+    function switchView(view) {
+      const home = document.getElementById('home-view');
+      const spec = document.getElementById('spec-view');
+      const navHome = document.getElementById('nav-home');
+      const navSpec = document.getElementById('nav-spec');
+      const specBack = document.getElementById('spec-back');
+      const menuBtn = document.getElementById('menu-btn');
+
+      if (view === 'spec') {
+        home.classList.add('hidden');
+        spec.classList.remove('hidden');
+        navSpec.classList.add('active');
+        navHome.classList.remove('active');
+        // 移动端：隐藏汉堡，显示返回
+        specBack.classList.remove('hidden');
+        specBack.classList.add('flex');
+        menuBtn.classList.add('hidden');
+      } else {
+        home.classList.remove('hidden');
+        spec.classList.add('hidden');
+        navHome.classList.add('active');
+        navSpec.classList.remove('active');
+        // 移动端：恢复汉堡，隐藏返回
+        specBack.classList.add('hidden');
+        specBack.classList.remove('flex');
+        menuBtn.classList.remove('hidden');
+      }
+      // 桌面端导航始终由 Tailwind md:flex 控制，不用 JS 动它
+      window.scrollTo(0, 0);
+    }
+    function openContact() {
+      const m = document.getElementById('contact-modal');
+      const c = document.getElementById('modal-content');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      setTimeout(() => {
+        c.classList.remove('scale-95', 'opacity-0');
+        c.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+    function closeContact() {
+      const m = document.getElementById('contact-modal');
+      const c = document.getElementById('modal-content');
+      c.classList.remove('scale-100', 'opacity-100');
+      c.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }, 250);
+    }
+
+    // --- 苹果级丝滑图片预览逻辑 ---
+    function openImageModal(src) {
+      const m = document.getElementById('image-modal');
+      const c = document.getElementById('image-modal-content');
+      const img = document.getElementById('image-modal-img');
+      img.src = src;
+      
+      // 使用 requestAnimationFrame 保证浏览器帧同步
+      requestAnimationFrame(() => {
+        // 第一阶段：背景淡入，开启交互与可见性
+        m.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
+        
+        requestAnimationFrame(() => {
+          // 第二阶段：内容弹性放大并完全可见
+          c.classList.remove('scale-95', 'opacity-0');
+          c.classList.add('scale-100', 'opacity-100');
+        });
+      });
+    }
+
+    function closeImageModal() {
+      const m = document.getElementById('image-modal');
+      const c = document.getElementById('image-modal-content');
+      
+      // 内容缩小并透明
+      c.classList.remove('scale-100', 'opacity-100');
+      c.classList.add('scale-95', 'opacity-0');
+      
+      // 背景及整体容器淡出，关闭交互
+      m.classList.add('opacity-0', 'pointer-events-none');
+      
+      // 动画完成后完全隐藏，避免影响底层点击
+      setTimeout(() => {
+        m.classList.add('invisible');
+      }, 400); // 对应 0.4s transition
+    }
+
+    // 监听键盘 ESC 键
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeImageModal();
+        closeContact();
+      }
+    });
+
+    // --- 轮播图控制逻辑 ---
+    let currentSlide = 0;
+    const totalSlides = 3; // 如果增删图片数量，这里改成对应数字
+    let slideInterval;
+
+    function updateCarousel() {
+      const track = document.getElementById('carousel-track');
+      if (!track) return;
+      track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+      const dots = document.getElementById('carousel-dots')?.children;
+      if (dots) {
+        for (let i = 0; i < dots.length; i++) {
+          dots[i].className = i === currentSlide
+            ? 'w-2 h-2 rounded-full bg-white/80 transition-all'
+            : 'w-2 h-2 rounded-full bg-white/30 hover:bg-white/50 transition-all';
+        }
+      }
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateCarousel();
+    }
+
+    function prevSlide() {
+      currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+      updateCarousel();
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateCarousel();
+    }
+
+    function startCarousel() {
+      slideInterval = setInterval(nextSlide, 4000); // 4秒轮换一次，可改
+    }
+
+    function stopCarousel() {
+      clearInterval(slideInterval);
+    }
+
+    // 初始化轮播图事件
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('carousel-container');
+      if (container) {
+        container.addEventListener('mouseenter', stopCarousel);
+        container.addEventListener('mouseleave', startCarousel);
+        startCarousel();
+      }
+
+      // 重新渲染新插入的图标
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+  </script>
 </body>
+
 </html>
