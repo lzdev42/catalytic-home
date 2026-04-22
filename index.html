@@ -219,7 +219,7 @@
       <div id="main-nav" class="hidden md:flex items-center gap-8">
         <button onclick="switchView('home')" id="nav-home" class="nav-btn active">产品</button>
         <button onclick="switchView('spec')" id="nav-spec" class="nav-btn">架构介绍</button>
-        <a href="https://github.com/lzdev42/CatalyticKit/releases" target="_blank"
+        <a href="https://github.com/lzdev42/catalytic-home/releases/" target="_blank"
           class="nav-btn flex items-center gap-1.5 hover:text-head">
           <i data-lucide="download" class="w-3.5 h-3.5"></i>下载
         </a>
@@ -585,7 +585,8 @@
   </div>
 
   <!-- IMAGE PREVIEW MODAL (Apple Smooth Native) -->
-  <div id="image-modal" class="fixed inset-0 z-[110] flex items-center justify-center p-4 invisible opacity-0 pointer-events-none">
+  <div id="image-modal"
+    class="fixed inset-0 z-[110] flex items-center justify-center p-4 invisible opacity-0 pointer-events-none">
     <div class="absolute inset-0 bg-black/95" onclick="closeImageModal()"></div>
     <div class="relative scale-95 opacity-0" id="image-modal-content">
       <button onclick="closeImageModal()"
@@ -669,12 +670,12 @@
       const c = document.getElementById('image-modal-content');
       const img = document.getElementById('image-modal-img');
       img.src = src;
-      
+
       // 使用 requestAnimationFrame 保证浏览器帧同步
       requestAnimationFrame(() => {
         // 第一阶段：背景淡入，开启交互与可见性
         m.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
-        
+
         requestAnimationFrame(() => {
           // 第二阶段：内容弹性放大并完全可见
           c.classList.remove('scale-95', 'opacity-0');
@@ -686,14 +687,14 @@
     function closeImageModal() {
       const m = document.getElementById('image-modal');
       const c = document.getElementById('image-modal-content');
-      
+
       // 内容缩小并透明
       c.classList.remove('scale-100', 'opacity-100');
       c.classList.add('scale-95', 'opacity-0');
-      
+
       // 背景及整体容器淡出，关闭交互
       m.classList.add('opacity-0', 'pointer-events-none');
-      
+
       // 动画完成后完全隐藏，避免影响底层点击
       setTimeout(() => {
         m.classList.add('invisible');
